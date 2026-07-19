@@ -82,12 +82,12 @@
                       ;; In shadow: ambient only, no diffuse or specular
                       (* *light-intensity* ambient)
                               (let* ((diffuse  (* 0.8 n-dot-l))
-                                                    (specular (if (and (> specular-exp 0) (> n-dot-l 0.0))
-                                                                                               (let* ((reflect (reflect-ray light-dir normal))
-                                                                                                                                          (r-dot-v (min 1.0 (max 0.0 (vec-dot reflect view-dir)))))
-                                                                                                                                (* (expt r-dot-v specular-exp) 0.5))
-                                                                                                                            0.0)))
-                                          (* *light-intensity* (+ ambient diffuse specular))))))
+                              (specular (if (and (> specular-exp 0) (> n-dot-l 0.0))
+                              (let* ((reflect (reflect-ray light-dir normal))
+                              (r-dot-v (min 1.0 (max 0.0 (vec-dot reflect view-dir)))))
+                              (* (expt r-dot-v specular-exp) 0.5))
+                              0.0)))
+                              (* *light-intensity* (+ ambient diffuse specular))))))
 
 
 ;;; ============================================================================
@@ -96,12 +96,12 @@
 
 (defun intersect-ray-sphere (origin direction sphere)
     (let* ((r (sphere-radius sphere))
-                    (center (sphere-center sphere))
-                             (co (vec-subtract origin center))
-                                      (a (vec-dot direction direction))
-                                               (b (* 2.0 (vec-dot co direction)))
-                                                        (c (- (vec-dot co co) (* r r)))
-                                                                 (discriminant (- (* b b) (* 4.0 a c))))
+               (center (sphere-center sphere))
+                (co (vec-subtract origin center))
+                (a (vec-dot direction direction))
+                (b (* 2.0 (vec-dot co direction)))
+                (c (- (vec-dot co co) (* r r)))
+                (discriminant (- (* b b) (* 4.0 a c))))
 
           (if (< discriminant 0.0)
                       (values most-positive-single-float most-positive-single-float)
@@ -135,35 +135,30 @@
 
           (if (null closest-sphere)
                       *background-color*
-                              (let* ((point      (vec-add origin (vec-scale direction closest-t)))
-                                                    (normal     (vec-normalize (vec-subtract point (sphere-center closest-sphere))))
+                              (let* ((point (vec-add origin (vec-scale direction closest-t)))
+                                    (normal (vec-normalize (vec-subtract point (sphere-center closest-sphere))))
                                                                    ;; view-dir points FROM surface TOWARD camera (negate incoming ray)
-                                                                   (view-dir   (vec-scale direction -1.0))
-                                                                                  (light-amt  (min 1.0 (compute-lighting point normal view-dir
-                                                                                                                                                                      (sphere-specular closest-sphere))))
-                                                                                                 (base-color (sphere-color closest-sphere))
-                                                                                                                (lit-color  (map 'vector
-                                                                                                                                                                 (lambda (x) (min 255 (max 0 (round (* x light-amt)))))
-                                                                                                                                                                                                 base-color))
-                                                                                                                               (reflect    (sphere-reflectivity closest-sphere)))
+                                    (view-dir   (vec-scale direction -1.0))
+                                    (light-amt  (min 1.0 (compute-lighting point normal view-dir
+                                    (sphere-specular closest-sphere))))
+                                    (base-color (sphere-color closest-sphere))
+                                    (lit-color  (map 'vector (lambda (x) (min 255 (max 0 (round (* x light-amt)))))
+                                     base-color))
+                                     (reflect    (sphere-reflectivity closest-sphere)))
 
                                           ;; Recursive mirror reflection — only if surface is reflective and
                                           ;; we have bounces remaining. This is the recurso en recursividad moment.
                                           (if (or (<= depth 0) (<= reflect 0.0))
-                                                            lit-color
-                                                                          (let* ((reflect-dir   (reflect-ray (vec-scale direction -1.0) normal))
-                                                                                                      (reflect-color (trace-ray point reflect-dir 0.001
-                                                                                                                                                                               most-positive-single-float
-                                                                                                                                                                                                                              (1- depth)))
-                                                                                                                           ;; Blend: local color scaled by (1-r), reflected by r
-                                                                                                                           (local-weight  (- 1.0 reflect))
-                                                                                                                                                (blended       (map 'vector
-                                                                                                                                                                                                             (lambda (local refl)
-                                                                                                                                                                                                                                                          (min 255 (max 0
-                                                                                                                                                                                                                                                                                                                     (round (+ (* local local-weight)
-                                                                                                                                                                                                                                                                                                                                                                                      (* refl reflect))))))
-                                                                                                                                                                                                                                                      lit-color reflect-color)))
-                                                                                            blended))))))
+                                            lit-color
+                                          (let* ((reflect-dir   (reflect-ray (vec-scale direction -1.0) normal))
+                                          (reflect-color (trace-ray point reflect-dir 0.001  most-positive-single-float
+                                                                               (1- depth)))                                                                                                                         
+                                          (local-weight  (- 1.0 reflect))
+                                          (blended       (map 'vector
+                                          (round (+ (* local local-weight)
+                                          (* refl reflect))))))
+                                          lit-color reflect-color)))
+                                          blended))))))
 
 
 ;;; ============================================================================
@@ -225,30 +220,26 @@
 (defun main (&key (width 600) (height 600) (filename nil) (spheres nil))
     ;; 1. Generate a timestamped filename if none is provided
     (let ((final-filename
-                      (or filename
-                                        (multiple-value-bind (sec min hour day month year)
-                                                              (decode-universal-time (get-universal-time))
-                                                          (declare (ignore sec)) ; <--- Add this line!
-                                                          (format nil "output-~4d-~2,'0d-~2,'0d-~2,'0d~2,'0d.ppm"
-                                                                                          year month day hour min)))))
+          (or filename
+          (multiple-value-bind (sec min hour day month year)
+          (decode-universal-time (get-universal-time))
+          (declare (ignore sec)) ; <--- Add this line!
+          (format nil "output-~4d-~2,'0d-~2,'0d-~2,'0d~2,'0d.ppm"
+           year month day hour min)))))
 
           ;; 2. Set up the spheres
           (let ((scene-spheres (or spheres
-                                                                (list (make-sphere :center #(0.0 -1.0 3.0)  :radius 1.0  :color #(255 0 0)   :specular 500 :reflectivity 0.2)
-                                                                                                         (make-sphere :center #(2.0  0.0 4.0)  :radius 1.0  :color #(0 0 255)   :specular 500 :reflectivity 0.3)
-                                                                                                                                            (make-sphere :center #(-2.0 0.0 4.0)  :radius 1.0  :color #(0 255 0)   :specular 10 :reflectivity 0.4)
-                                                                                                                                                                               (make-sphere :center #(0.0 -5001.0 0.0) :radius 5000.0 :color #(255 255 0) :specular 1000 :reflectivity 0.5)))))
+          (list (make-sphere :center #(0.0 -1.0 3.0)  :radius 1.0  :color #(255 0 0)   :specular 500 :reflectivity 0.2)
+          (make-sphere :center #(2.0  0.0 4.0)  :radius 1.0  :color #(0 0 255)   :specular 500 :reflectivity 0.3)
+          (make-sphere :center #(-2.0 0.0 4.0)  :radius 1.0  :color #(0 255 0)   :specular 10 :reflectivity 0.4)
+          (make-sphere :center #(0.0 -5001.0 0.0) :radius 5000.0 :color #(255 255 0) :specular 1000 :reflectivity 0.5)))))
 
                   (setf *spheres* scene-spheres)
 
                   ;; 3. Create canvas and render
                   (let ((canvas (make-canvas-obj
-                                                      :width  width
-                                                                           :height height
-                                                                                                :data   (make-array (list height width 3)
-                                                                                                                                                             :element-type '(unsigned-byte 8)
-                                                                                                                                                                                                      :initial-element 0))))
-
+                   :width  width :height height :data   (make-array (list height width 3) :element-type '(unsigned-byte 8)
+                   :initial-element 0))))
                             (format t "Rendering to ~a...~%" final-filename)
                             (render-scene canvas)
                             (export-canvas-to-ppm canvas final-filename)
@@ -264,14 +255,14 @@
     (flet ((sdf (p)
                         ;; Signed distance to a rounded box
                         (let* ((q (vector (- (abs (- (aref p 0) (aref center 0))) half-size)
-                                                                       (- (abs (- (aref p 1) (aref center 1))) half-size)
-                                                                                                    (- (abs (- (aref p 2) (aref center 2))) half-size)))
+                              (- (abs (- (aref p 1) (aref center 1))) half-size)
+                              (- (abs (- (aref p 2) (aref center 2))) half-size)))
                                                  (qx (aref q 0)) (qy (aref q 1)) (qz (aref q 2))
                                                                    ;; length(max(q,0)) + min(max(qx,qy,qz),0) - roundness
-                                                                   (outer (sqrt (+ (expt (max 0.0 qx) 2)
-                                                                                                                     (expt (max 0.0 qy) 2)
-                                                                                                                                                       (expt (max 0.0 qz) 2))))
-                                                                                     (inner (min (max qx qy qz) 0.0)))
+                             (outer (sqrt (+ (expt (max 0.0 qx) 2)
+                             (expt (max 0.0 qy) 2)
+                             (expt (max 0.0 qz) 2))))
+                               (inner (min (max qx qy qz) 0.0)))
                                        (- (+ outer inner) roundness))))
           (raymarch-sdf #'sdf origin direction 0.001 100.0)))
 
@@ -296,22 +287,22 @@
     (let ((eps 0.001))
           (vec-normalize
                  (vector (- (funcall sdf (vector (+ (aref point 0) eps)
-                                                                                        (aref point 1)
-                                                                                                                               (aref point 2)))
-                                             (funcall sdf (vector (- (aref point 0) eps)
-                                                                                                         (aref point 1)
-                                                                                                                                                (aref point 2))))
-                                       (- (funcall sdf (vector (aref point 0)
-                                                                                                      (+ (aref point 1) eps)
-                                                                                                                                             (aref point 2)))
-                                                           (funcall sdf (vector (aref point 0)
-                                                                                                                       (- (aref point 1) eps)
-                                                                                                                                                              (aref point 2))))
-                                                     (- (funcall sdf (vector (aref point 0)
-                                                                                                                    (aref point 1)
-                                                                                                                                                           (+ (aref point 2) eps)))
-                                                                         (funcall sdf (vector (aref point 0)
-                                                                                                                                     (aref point 1)
+                 (aref point 1)
+                 (aref point 2)))
+                 (funcall sdf (vector (- (aref point 0) eps)
+                 (aref point 1)
+                 (aref point 2))))
+                         (- (funcall sdf (vector (aref point 0)
+                         (+ (aref point 1) eps)
+                         (aref point 2)))
+                 (funcall sdf (vector (aref point 0)
+                                      (- (aref point 1) eps)
+                                      (aref point 2))))
+                         (- (funcall sdf (vector (aref point 0)
+                                                 (aref point 1)
+                                                 (+ (aref point 2) eps)))
+                            (funcall sdf (vector (aref point 0)
+                                                 (aref point 1)
                                                                                                                                                                            (- (aref point 2) eps))))))))
 ;;Torus
 (defun sdf-torus (point center major-r minor-r)
@@ -337,12 +328,12 @@
     "Analytic normal for a torus — faster than central differences."
     (let* ((p  (vec-subtract point center))
                     (px (aref p 0))
-                             (py (aref p 1))
-                                      (pz (aref p 2))
-                                               (ring-dist (sqrt (+ (* px px) (* pz pz))))
+                    (py (aref p 1))
+                    (pz (aref p 2))
+                    (ring-dist (sqrt (+ (* px px) (* pz pz))))
                                                         ;; Closest point on the ring
-                                                        (cx (* (/ px ring-dist) major-r))
-                                                                 (cz (* (/ pz ring-dist) major-r)))
+                    (cx (* (/ px ring-dist) major-r))
+                    (cz (* (/ pz ring-dist) major-r)))
           (vec-normalize (vector (- px cx) py (- pz cz)))))
 ;;mandel bulb ADD WARNINGS AND USER WALKTHROUGH
 (defparameter *mandelbulb-power* 8.0
@@ -366,15 +357,15 @@
 
                   ;; Convert to spherical coordinates
                   (let* ((wx (aref w 0)) (wy (aref w 1)) (wz (aref w 2))
-                                                      (r     (sqrt m))
-                                                                   (theta (* n (atan (sqrt (+ (* wx wx) (* wz wz))) wy)))
-                                                                                (phi   (* n (atan wz wx)))
-                                                                                             (rn    (expt r n)))
+                  (r     (sqrt m))
+                                         (theta (* n (atan (sqrt (+ (* wx wx) (* wz wz))) wy)))
+                                        (phi   (* n (atan wz wx)))
+                                         (rn    (expt r n)))
 
                             ;; Rotate and scale — the mandelbulb iteration
                             (setf w (vector (+ (* rn (sin theta) (cos phi)) (aref point 0))
-                                                                    (+ (* rn (cos theta))            (aref point 1))
-                                                                                            (+ (* rn (sin theta) (sin phi))  (aref point 2))))
+                            (+ (* rn (cos theta))            (aref point 1))
+                                            (+ (* rn (sin theta) (sin phi))  (aref point 2))))
                             (setf m (vec-dot w w)))
 
                   ;; Escape condition — outside the bulb
@@ -382,7 +373,6 @@
                             (return-from sdf-mandelbulb
                                         ;; Distance estimator: 0.5 * log(|w|) * |w| / dz
                                         (* 0.5 (log m) (/ (sqrt m) dz)))))
-
           ;; Inside the bulb
           0.0))
 
