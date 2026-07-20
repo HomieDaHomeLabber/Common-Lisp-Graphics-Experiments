@@ -214,29 +214,30 @@
                                                 (write-byte (aref data y x 2) stream)))
                   nil)))
 
+(defun output-ppm-to-png (ppm-filename png-filename)
+    "Converts PPM to PNG using ImageMagick if present, fails gracefully."
+    (let ((check-process (sb-ext:run-program "/usr/bin/which"                                                                                        '("convert") :search t :wait t)))
+          ;; Check if the command 'which' returned 0 (success)
+          (if (= (sb-ext:process-exit-code check-process) 0)
+                      (progn (sb-ext:run-program "convert"
+                              (list ppm-filename png-filename) :search t  :wait t)
+                                            (format t "Successfully converted ~a to ~a~%" ppm-filename png-filename))
+                              (format t "ImageMagick not found. Skipping conversion. PPM file: ~a~%" ppm-filename))))
+
+(defun get-png (ppm-filename)
+    "Takes a .ppm filename string or pathname and returns a string with a .png extension."
+    (namestring (make-pathname :type "png" :defaults ppm-filename)))
+
+
+
+
+
+
+
 
 ;;; ============================================================================
 ;;; 6. SCENE SETUP AND ENTRY POINT
 ;;; ============================================================================
-
-
-(defun output-ppm-to-png (ppm-filename png-filename)
-  "Converts PPM to PNG using ImageMagick if present, fails gracefully."
-  (let ((check-process (sb-ext:run-program "/usr/bin/which"                                                        
-                              '("convert") :search t :wait t)))
-    ;; Check if the command 'which' returned 0 (success)
-    (if (= (sb-ext:process-exit-code check-process) 0)
-        (progn (sb-ext:run-program "convert"
-                                  (list ppm-filename png-filename) :search t  :wait t)
-               (format t "Successfully converted ~a to ~a~%" ppm-filename png-filename))
-       (format t "ImageMagick not found. Skipping conversion. PPM file: ~a~%" ppm-filename))))
-
-(defun get-png (ppm-filename)
-"Takes a .ppm filename string or pathname and returns a string with a .png extension."
-(namestring (make-pathname :type "png" :defaults ppm-filename)))
-
-
-
 (defun main (&key (width 600) (height 600) (filename nil) (spheres nil))
     ;; 1. Generate a timestamped filename if none is provided
     (let ((final-filename
@@ -263,9 +264,10 @@
                             (format t "Rendering to ~a...~%" final-filename)
                             (render-scene canvas)
                             (export-canvas-to-ppm canvas final-filename)
-                            (format t "Done! Written to ~a~%" final-filename
-                            (output-ppm-to-png final-filename (get-png final-filename))))))    
-                            )))))
+                            (format t "Done! Written to ~a~%" final-filename)
+                            ;; 4. Best-effort PNG conversion — see section 7 at the end of the file.
+                              (output-ppm-to-png final-filename (get-png final-filename))))))
+                    
 
 ;;--------------------------------------------------------------------
 ;;Cooler Shapes than spheres to refactor
