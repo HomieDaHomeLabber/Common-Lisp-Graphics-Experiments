@@ -155,9 +155,10 @@
                                                                                (1- depth)))                                                                                                                         
                                           (local-weight  (- 1.0 reflect))
                                           (blended       (map 'vector
-                                          (round (+ (* local local-weight)
-                                          (* refl reflect))))))
-                                          lit-color reflect-color)))
+                                                              (lambda (local refl)
+                                                                (round (+ (* local local-weight)
+                                                                          (* refl reflect))))
+                                                              lit-color reflect-color)))
                                           blended))))))
 
 
@@ -199,9 +200,9 @@
     "Exports the canvas to a binary PPM (P6) file."
     (with-slots (width height data) canvas
           (with-open-file (stream filename
-                                                              :direction :output
-                                                                                          :if-exists :supersede
-                                                                                                                      :element-type '(unsigned-byte 8))
+            :direction :output
+            :if-exists :supersede
+            :element-type '(unsigned-byte 8))
                   (labels ((write-str (str)
                                               (loop for char across str do (write-byte (char-code char) stream))))
                             (write-str (format nil "P6~%~D ~D~%255~%" width height)))
@@ -303,7 +304,7 @@
                                                  (+ (aref point 2) eps)))
                             (funcall sdf (vector (aref point 0)
                                                  (aref point 1)
-                                                                                                                                                                           (- (aref point 2) eps))))))))
+                                                 (- (aref point 2) eps))))))))
 ;;Torus
 (defun sdf-torus (point center major-r minor-r)
     "Signed distance to a torus.
